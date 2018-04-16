@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-model="http://www.w3.org/1999/xhtml" xmlns:v-on="http://www.w3.org/1999/xhtml"
+      xmlns:v-model.trim="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="vue.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- Bootstrap core CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Material Design Bootstrap -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.5.0/css/mdb.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- JQuery -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript"
+            src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <!-- MDB core JavaScript -->
+    <script type="text/javascript"
+            src="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.5.0/js/mdb.min.js"></script>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+
+    <script src="axios.js"></script>
+
+</head>
+<body>
+<header>
+
+    <nav class="navbar navbar-expand-lg navbar-dark blue">
+        <a class="navbar-brand" href="#"><strong>TodoList</strong></a>
+    </nav>
+</header>
+
+<div class="main" style="margin-top: 40px;">
+    <div class="container">
+        <div id="app">
+
+            <div class="row">
+                <div class="col-lg-6">
+
+
+                    <div class="card">
+                        <h3 class="card-header primary-color white-text">ToDo List New Task</h3>
+                        <div class="card-body">
+                            <p class="card-text">Enter your new task below</p>
+                            <div class="md-form form-lg">
+                                <input @keyup.enter="addTodo" type="text" placeholder="New Task" id="inputLGEx"
+                                       v-model:value="newtask"
+                                       class="form-control form-control-lg">
+                            </div>
+                            <a class="btn btn-primary" v-on:click="addTodo">Add To List</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <h2 style="display: inline">Task Lists</h2>
+                    <a class="btn btn-primary" v-on:click="clearList">Clear List</a>
+                    <a class="btn btn-primary" v-on:click="updateList">Update List</a>
+                    <ul class="list-group ">
+                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                            v-for="todo in todos">
+                            <input type="text" v-model.trim:value="todo.task"/>
+                            <span v-if="todo.done">
+                                  <input v-model:value="todo.done" checked="checked" type="checkbox"
+                                         class="form-check-input"
+                                         v-on:change="changeTicketStatus" v-bind:id="todo.id">
+                            </span>
+                            <span v-else>
+                                  <input v-model:value="todo.done" type="checkbox" class="form-check-input"
+                                         v-on:change="changeTicketStatus" v-bind:id="todo.id">
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div> <!--end row-->
+        </div> <!--end app-->
+    </div><!--end container-->
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            var data = [];
+            let app = new Vue({
+                el: '#app',
+                data: {
+                    newtask: "",
+                    message: 'hello',
+                    todos: data
+                },
+                created: function () {
+                    /*getTodos().then((response)=>{
+                        me.todos = response.data;
+                        //console.log(data)
+                    })*/
+                    this.fillTodo();
+                },
+                methods: {
+                    addTodo() {
+
+                        this.newtask = this.newtask.trim();
+                        if (this.newtask == "" || this.newtask == null) {
+                            swal("Error", "Task can not be empty", "error");
+                            return;
+                        }
+                        this.todos.push({task: this.newtask, done: false});
+                        new Promise((resolve) => {
+                            axios.post('/todos', {
+                                task: this.newtask, done: false
+                            }).then(function (data) {
+                                resolve(data.data)
+                            })
+                        }).then((data) => {
+                            //console.log(data)
+                            swal("Success", "New task added to list", "success");
+                            this.fillTodo();
+                            this.newtask = "";
+                        })
+                    },
+                    async changeTicketStatus(e) {
+
+                        var status = e.target.checked;
+                        var id = e.target.id;
+                        console.log(status);
+                        console.log(id);
+
+                        var response = await axios.put('/todos/updateStatus', {
+                            tid: id, tstatus: status
+                        });
+
+                        if(response.data.success) {
+                            this.fillTodo();
+                        }
+                        /*console.log(JSON.stringify(this.todos));*/
+
+                    },
+                    async updateList() {
+                        console.log(this.todos)
+                        let response = await axios.put('/todos', {todos: this.todos});
+                        if (response.data.success) {
+                            swal("Success", response.data.msg, "success");
+                            this.fillTodo();
+                        }
+                    },
+                    clearList() {
+                        var checkedTodo = [];
+
+                        this.todos.forEach((v) => {
+                            if (v.done)
+                                checkedTodo.push(v.id)
+                        })
+                        console.log("clearing data")
+                        console.log(checkedTodo)
+
+                        this.deleteTodo(checkedTodo)
+                        /*this.todos = this.todos.filter(function (v) {
+                            return v.done == false;
+                        });*/
+                    },
+                    async deleteTodo(checkedTodo) {
+                        try {
+                            let response = await axios.delete('/todos/deleteBatch/' + checkedTodo)
+                            console.log(response)
+                            if (response.data.success)
+                                this.fillTodo();
+                        } catch (e) {
+                            alert("Error occured" + e);
+                        }
+                    },
+                    fillTodo() {
+                        new Promise((resolve) => {
+                            axios.get('/todos').then(function (data) {
+                                resolve(data.data)
+                            })
+                        }).then((data) => {
+                            this.todos = data
+                        })
+                    }
+                }
+            })
+        })
+    </script>
+</div>
+</body>
+</html>
