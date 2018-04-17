@@ -10,10 +10,11 @@ app.use(express.urlencoded({
 app.use('/', express.static(path.join(__dirname, 'public')));
 
 const routes = {
-    todos: require('./todos')
+    todos: require('./todos'),
+    todos_db:require('./todos_sequalize')
 }
 
-app.use('/todos', routes.todos)
+app.use('/todos', routes.todos_db)
 app.listen(5050, function () {
     console.log("server started");
 })
